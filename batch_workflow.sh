@@ -74,7 +74,7 @@ echo QC_of_Trimming_done
 
 ####################################################################
 ### co-assembly megahit
-### 
+###
 ####################################################################
 
 echo co-assembling
@@ -103,36 +103,36 @@ echo co-assembling_done
 
 ####################################################################
 ### loading into anvio
-### 
+###
 ####################################################################
 
 mkdir $ANVIO
 mkdir $ANVIO_A
 mkdir $ANVIO_B
 cd $ANVIO
-mv $MEGAHIT/indA/IndA_contigs.fa $MEGAHIT/
-mv $MEGAHIT/indB/IndB_contigs.fa $MEGAHIT/
+cp $MEGAHIT/IndA_contigs.fa $ANVIO_A
+cp $MEGAHIT/IndB_contigs.fa $ANVIO_B
 
-anvi-script-reformat-fasta $MEGAHIT/IndA_contigs.fa -o $ANVIO_A/IndA_contigs.fa -l 0 --simplify-names
-anvi-script-reformat-fasta $MEGAHIT/IndB_contigs.fa -o $ANVIO_B/IndB_contigs.fa -l 0 --simplify-names
+anvi-script-reformat-fasta $ANVIO_A/IndA_contigs.fa -o $ANVIO_A/IndA_contigs.fa -l 0 --simplify-names
+anvi-script-reformat-fasta $ANVIO_B/IndB_contigs.fa -o $ANVIO_B/IndB_contigs.fa -l 0 --simplify-names
 
 
 
 ###create anvio database
-GRDI	
+GRDI
 
 anvi-gen-contigs-database -f $ANVIO_A/IndA_contigs.fa -o $ANVIO_A/IndA_contigs.db -n IndA --num-threads 25
 anvi-gen-contigs-database -f $ANVIO_B/IndB_contigs.fa -o $ANVIO_B/IndB_contigs.db -n IndB --num-threads 25
 
 
-anvi-run-hmms -c $ANVIO_A/IndA_contigs.db -T 50
-anvi-run-hmms -c $ANVIO_B/IndB_contigs.db -T 50
+anvi-run-hmms -c $ANVIO_A/IndA_contigs.db -T 24
+anvi-run-hmms -c $ANVIO_B/IndB_contigs.db -T 24
 
-anvi-run-kegg-kofams -c $ANVIO_A/IndA_contigs.db -T 50 --hmmer-program hmmsearch --keep-all-hits --just-do-it
-anvi-run-kegg-kofams -c $ANVIO_B/IndB_contigs.db -T 50 --hmmer-program hmmsearch --keep-all-hits --just-do-it
+anvi-run-kegg-kofams -c $ANVIO_A/IndA_contigs.db -T 24 --hmmer-program hmmsearch  --just-do-it
+anvi-run-kegg-kofams -c $ANVIO_B/IndB_contigs.db -T 24 --hmmer-program hmmsearch  --just-do-it
 
-anvi-run-ncbi-cogs -c $ANVIO_A/IndA_contigs.db --cog-data-dir $GALEN/COG --num-threads 20 --search-with diamond 
-anvi-run-ncbi-cogs -c $ANVIO_B/IndB_contigs.db --cog-data-dir $GALEN/COG --num-threads 20 --search-with diamond 
+anvi-run-ncbi-cogs -c $ANVIO_A/IndA_contigs.db --cog-data-dir $GALEN/COG --num-threads 24 --search-with diamond
+anvi-run-ncbi-cogs -c $ANVIO_B/IndB_contigs.db --cog-data-dir $GALEN/COG --num-threads 24 --search-with diamond
 
 anvi-get-sequences-for-gene-calls -c $ANVIO_A/IndA_contigs.db \
                                     --get-aa-sequences \
@@ -141,120 +141,110 @@ anvi-get-sequences-for-gene-calls -c $ANVIO_B/IndB_contigs.db \
                                     --get-aa-sequences \
                                     -o $ANVIO_B/IndB_amino-acid-sequences.fa
 
-anvi-display-contigs-stats $ANVIO_A/IndA_contigs.db  --report-as-text  --output-file $ANVIO_A/IndA_contigs_post-hmm-cogs.txt
-anvi-display-contigs-stats $ANVIO_B/IndB_contigs.db  --report-as-text  --output-file $ANVIO_B/IndB_contigs_post-hmm-cogs.txt
 
+anvi-run-pfams -c $ANVIO_A/IndA_contigs.db --pfam-data-dir $GALEN/database/pfam --hmmer-program hmmscan --num-threads 24
+anvi-run-pfams -c $ANVIO_B/IndB_contigs.db --pfam-data-dir $GALEN/database/pfam --hmmer-program hmmscan --num-threads 24
+### estimate taxonomy of bins (using GTDB)
+anvi-run-scg-taxonomy -c $ANVIO_A/IndA_contigs.db -T 24
+anvi-run-scg-taxonomy -c $ANVIO_B/IndB_contigs.db -T 24
 
-####################################################################
-### GENE FUNCTION CALLS
-### interproscan on amino-acid seq from anvio
-####################################################################
+anvi-display-contigs-stats $ANVIO_A/IndA_contigs.db  --report-as-text  --output-file $ANVIO_A/IndA_stats.txt
+anvi-display-contigs-stats $ANVIO_B/IndB_contigs.db  --report-as-text  --output-file $ANVIO_B/IndB_stats.txt
 
-mkdir $ANVIO_A/iprs/
-
-perl $GALEN/split_fasta.pl -i $ANVIO_A/IndA_amino-acid-sequences.fa -o $ANVIO_A/iprs/iprs -n 5000
-
-mkdir $ANVIO_B/iprs/
-
-perl $GALEN/split_fasta.pl -i $ANVIO_B/IndB_amino-acid-sequences.fa -o $ANVIO_B/iprs/iprs -n 5000
-
-## Create sample list of all file created 
-
-find $ANVIO_A/iprs -printf "%f\n" > $ANVIO_A/iprs/iprs_list
-find $ANVIO_B/iprs -printf "%f\n" > $ANVIO_B/iprs/iprs_list
-
-
-## repeat below for each list.
-
-mkdir $ANVIO_A/interpro_output
-
-for sample in `awk '{print $1}' $ANVIO_A/iprs/iprs_list`;
-do
-/isilon/ottawa-rdc/users/shared/chenw_lab/galen/interproscan-5.39-77.0/interproscan.sh -i $ANVIO_A/iprs/${sample} -f tsv \
-	-d $ANVIO_A/interpro_output/ \
-	--tempdir $WORK/temp/ \
-	--disable-precalc \
-	-appl Pfam,PIRSF,SUPERFAMILY,TIGRFAM \
-	--iprlookup \
-	--goterms \
-	--pathways --cpu 10
-done
-
-mkdir $ANVIO_B/interpro_output
-
-for sample in `awk '{print $1}' $ANVIO_A/iprs/iprs_list`;
-do
-/isilon/ottawa-rdc/users/shared/chenw_lab/galen/interproscan-5.39-77.0/interproscan.sh -i $ANVIO_B/iprs/${sample} -f tsv \
-	-d $ANVIO_B/interpro_output/ \
-	--tempdir $WORK/temp/ \
-	--disable-precalc \
-	-appl Pfam,PIRSF,SUPERFAMILY,TIGRFAM \
-	--iprlookup \
-	--goterms \
-	--pathways --cpu 10
-done
-
-### create new folder to house concatenate of all smaller fxnal annotation output (the script dont like a folder with too much clutter, im guessing)
-
-cat $ANVIO_A/interpro_output/*.tsv > $ANVIO_A/interpro_output/indA_all_iprs.tsv
-cat $ANVIO_B/interpro_output/*.tsv > $ANVIO_B/interpro_output/indB_all_iprs.tsv
-
-### script to clean up and allow import to anvio
-
-## create iprs2anvio.sh file found here: https://github.com/xvazquezc/stuff/blob/master/iprs2anvio.sh
-
-/isilon/ottawa-rdc/users/shared/chenw_lab/galen/interproscan-5.48-83.0/iprs2anvio.sh -i $ANVIO_A/interpro_output/indA_all_iprs.tsv -o $ANVIO_A/interpro_output/indA -g -p -ipr
-
-/isilon/ottawa-rdc/users/shared/chenw_lab/galen/interproscan-5.48-83.0/iprs2anvio.sh -i $ANVIO_B/interpro_output/indB_all_iprs.tsv -o $ANVIO_B/interpro_output/indB -g -p -r
-
-
-### importing functional annotation to anvio
-cp $ANVIO_B/IndB_contigs_backup.db $ANVIO_B/IndB_contigs.db
-cp $ANVIO_A/IndA_contigs_backup.db $ANVIO_A/IndA_contigs.db
-
-anvi-import-functions -c $ANVIO_A/IndA_contigs.db -i $ANVIO_A/interpro_output/indA_iprs2anvio.tsv
-anvi-import-functions -c $ANVIO_B/IndB_contigs.db -i $ANVIO_B/interpro_output/indB_iprs2anvio.tsv
-
-
-
-
-####################################################################
-### TAXONOMY CALLS
-### centrifuge  on amino-acid seq from anvio
-####################################################################
-mkdir $ANVIO/centrifuge
-
-
-centrifuge -f -x $CENTRIFUGE_BASE/p+h+v/p+h+v $ANVIO/amino-acid-sequences.fa -S $ANVIO/centrifuge/centrifuge_hits.tsv
-
-## Make sure there is two files in the work directory ($ANVIO/centrifuge/)
-
-anvi-import-taxonomy-for-genes -c $ANVIO/contigs.db -i $ANVIO/centrifuge/centrifuge_report.tsv $ANVIO/centrifuge/centrifuge_hits.tsv -p centrifuge
+#
+# ####################################################################
+# ### GENE FUNCTION CALLS
+# ### interproscan on amino-acid seq from anvio
+# ####################################################################
+#
+# mkdir $ANVIO_A/iprs/
+#
+# perl $GALEN/split_fasta.pl -i $ANVIO_A/IndA_amino-acid-sequences.fa -o $ANVIO_A/iprs/iprs -n 5000
+#
+# mkdir $ANVIO_B/iprs/
+#
+# perl $GALEN/split_fasta.pl -i $ANVIO_B/IndB_amino-acid-sequences.fa -o $ANVIO_B/iprs/iprs -n 5000
+#
+# ## Create sample list of all file created
+#
+# find $ANVIO_A/iprs -printf "%f\n" > $ANVIO_A/iprs/iprs_list
+# find $ANVIO_B/iprs -printf "%f\n" > $ANVIO_B/iprs/iprs_list
+#
+#
+# ## repeat below for each list.
+#
+# mkdir $ANVIO_A/interpro_output
+#
+# for sample in `awk '{print $1}' $ANVIO_A/iprs/iprs_list`;
+# do
+# /isilon/ottawa-rdc/users/shared/chenw_lab/galen/interproscan-5.39-77.0/interproscan.sh -i $ANVIO_A/iprs/${sample} -f tsv \
+# 	-d $ANVIO_A/interpro_output/ \
+# 	--tempdir $WORK/temp/ \
+# 	--disable-precalc \
+# 	-appl Pfam,PIRSF,SUPERFAMILY,TIGRFAM \
+# 	--iprlookup \
+# 	--goterms \
+# 	--pathways --cpu 10
+# done
+#
+# mkdir $ANVIO_B/interpro_output
+#
+# for sample in `awk '{print $1}' $ANVIO_A/iprs/iprs_list`;
+# do
+# /isilon/ottawa-rdc/users/shared/chenw_lab/galen/interproscan-5.39-77.0/interproscan.sh -i $ANVIO_B/iprs/${sample} -f tsv \
+# 	-d $ANVIO_B/interpro_output/ \
+# 	--tempdir $WORK/temp/ \
+# 	--disable-precalc \
+# 	-appl Pfam,PIRSF,SUPERFAMILY,TIGRFAM \
+# 	--iprlookup \
+# 	--goterms \
+# 	--pathways --cpu 10
+# done
+#
+# ### create new folder to house concatenate of all smaller fxnal annotation output (the script dont like a folder with too much clutter, im guessing)
+#
+# cat $ANVIO_A/interpro_output/*.tsv > $ANVIO_A/interpro_output/indA_all_iprs.tsv
+# cat $ANVIO_B/interpro_output/*.tsv > $ANVIO_B/interpro_output/indB_all_iprs.tsv
+#
+# ### script to clean up and allow import to anvio
+#
+# ## create iprs2anvio.sh file found here: https://github.com/xvazquezc/stuff/blob/master/iprs2anvio.sh
+#
+# /isilon/ottawa-rdc/users/shared/chenw_lab/galen/interproscan-5.48-83.0/iprs2anvio.sh -i $ANVIO_A/interpro_output/indA_all_iprs.tsv -o $ANVIO_A/interpro_output/indA -g -p -ipr
+#
+# /isilon/ottawa-rdc/users/shared/chenw_lab/galen/interproscan-5.48-83.0/iprs2anvio.sh -i $ANVIO_B/interpro_output/indB_all_iprs.tsv -o $ANVIO_B/interpro_output/indB -g -p -r
+#
+#
+# ### importing functional annotation to anvio
+# cp $ANVIO_B/IndB_contigs_backup.db $ANVIO_B/IndB_contigs.db
+# cp $ANVIO_A/IndA_contigs_backup.db $ANVIO_A/IndA_contigs.db
+#
+# anvi-import-functions -c $ANVIO_A/IndA_contigs.db -i $ANVIO_A/interpro_output/indA_iprs2anvio.tsv
+# anvi-import-functions -c $ANVIO_B/IndB_contigs.db -i $ANVIO_B/interpro_output/indB_iprs2anvio.tsv
+#
+#
+#
+#
+# ####################################################################
+# ### TAXONOMY CALLS
+# ### centrifuge  on amino-acid seq from anvio
+# ####################################################################
+# mkdir $ANVIO/centrifuge
+#
+#
+# centrifuge -f -x $CENTRIFUGE_BASE/p+h+v/p+h+v $ANVIO/amino-acid-sequences.fa -S $ANVIO/centrifuge/centrifuge_hits.tsv
+#
+# ## Make sure there is two files in the work directory ($ANVIO/centrifuge/)
+#
+# anvi-import-taxonomy-for-genes -c $ANVIO/contigs.db -i $ANVIO/centrifuge/centrifuge_report.tsv $ANVIO/centrifuge/centrifuge_hits.tsv -p centrifuge
 
 ### adding Single copy gene into database
 
 # run this first, only once.
 
-anvi-setup-scg-databases
-
-
-anvi-run-scg-taxonomy -c $ANVIO/contigs.db -T 10
-
-anvi-estimate-genome-taxonomy \ 
-				-c $ANVIO/contigs.db \
-                              	--metagenome-mode \
-				--output-file $ANVIO/scg_est_output.txt
-
-# to run after profiling!
-
-anvi-estimate-genome-taxonomy -c $ANVIO/contigs.db \
-                              -p $ANVIO/profile_merged/PROFILE.db \
-                              --metagenome-mode \
-                              --compute-scg-coverages
-
 ####################################################################
 ### mapping with bowtie2
-### 
+###
 ####################################################################
 
 echo mapping
@@ -284,7 +274,7 @@ for sample in `awk '{print $1}' $MAPPING/sample_name`;
 do
 R1="${sample}.pair1.fq.gz"
 R2="${sample}.pair2.fq.gz"
-sam="${sample}.sam" 
+sam="${sample}.sam"
 bowtie2 -x $MAPPING/IndA/IndA_contigs -1 $R1 -2 $R2 -S $MAPPING/$sam --threads 25
 bowtie2 -x $MAPPING/IndB/IndB_contigs -1 $R1 -2 $R2 -S $MAPPING/$sam --threads 25
 
@@ -317,7 +307,7 @@ echo mapping_done
 
 ####################################################################
 ### Profiling cont'd very long. bam --> anvio
-### PROFILE DONT LIKE SAMPLE NAME WITH "-" 
+### PROFILE DONT LIKE SAMPLE NAME WITH "-"
 ####################################################################
 
 ### change bam file name from "-" to "_"
@@ -412,14 +402,14 @@ anvi-refine ....
 ## export and change bin name manually
 cd $ANVIO_A/
 
-anvi-export-collection -C indA_dastool -p $ANVIO_A/profile_merged/PROFILE.db 
-anvi-import-collection $ANVIO_A/collection-indA_dastool.txt --bins-info $ANVIO_A/collection-indA_dastool-info.txt -C FINAL -p $ANVIO_A/profile_merged/PROFILE.db  -c $ANVIO_A/IndA_contigs.db 
+anvi-export-collection -C indA_dastool -p $ANVIO_A/profile_merged/PROFILE.db
+anvi-import-collection $ANVIO_A/collection-indA_dastool.txt --bins-info $ANVIO_A/collection-indA_dastool-info.txt -C FINAL -p $ANVIO_A/profile_merged/PROFILE.db  -c $ANVIO_A/IndA_contigs.db
 
 
 cd $ANVIO_B/
 
-anvi-export-collection -C indB_dastool -p $ANVIO_B/profile_merged/PROFILE.db 
-anvi-import-collection $ANVIO_B/collection-indB_dastool.txt --bins-info $ANVIO_B/collection-indB_dastool-info.txt -C FINAL -p $ANVIO_B/profile_merged/PROFILE.db  -c $ANVIO_A/IndA_contigs.db 
+anvi-export-collection -C indB_dastool -p $ANVIO_B/profile_merged/PROFILE.db
+anvi-import-collection $ANVIO_B/collection-indB_dastool.txt --bins-info $ANVIO_B/collection-indB_dastool-info.txt -C FINAL -p $ANVIO_B/profile_merged/PROFILE.db  -c $ANVIO_A/IndA_contigs.db
 
 
 
@@ -431,9 +421,9 @@ anvi-run-kegg-kofams -p $ANVIO_A/profile_merged/PROFILE.db  -c $ANVIO_A/IndA_con
 anvi-run-kegg-kofams -p $ANVIO_B/profile_merged/PROFILE.db  -c $ANVIO_B/IndB_contigs.db   -C FINAL -T 75 --kegg-data-dir $GALEN/KOFAM/
 
 cd $ANVIO_A
-anvi-estimate-metabolism -p $ANVIO_A/profile_merged/PROFILE.db -c $ANVIO_A/IndA_contigs.db -C FINAL --kegg-data-dir $GALEN/KOFAM/
+anvi-estimate-metabolism -p $ANVIO_A/profile_merged/PROFILE.db -c $ANVIO_A/IndA_contigs.db -C FINAL --kegg-data-dir $GALEN/KOFAM/ --output-file-prefix $ANVIO_A/IndA_KEGG_FINAL --add-coverage
 cd $ANVIO_B
-anvi-estimate-metabolism -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_contigs.db -C FINAL --kegg-data-dir $GALEN/KOFAM/
+anvi-estimate-metabolism -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_contigs.db -C FINAL --kegg-data-dir $GALEN/KOFAM/ --output-file-prefix $ANVIO_B/IndB_KEGG_FINAL --add-coverage
 
 
 ####################################################################
@@ -464,7 +454,7 @@ anvi-summarize -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_contigs.db
 ####################################################################
 mkdir $ANVIO_A/sample_summary_indA_FINAL/bin_by_bin/all_fas
 cp $ANVIO_A/sample_summary_indA_FINAL/bin_by_bin/*/*.fa $ANVIO_A/sample_summary_indA_FINAL/bin_by_bin/all_fas
- 
+
 mkdir $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/all_fas
 cp $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/*/*.fa $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/all_fas
 
@@ -514,13 +504,13 @@ mkdir $output/anvio_derep/all_fa
 
 cp $ANVIO_A/sample_summary_indA_FINAL/bin_by_bin/all_fas/*.fa $output/anvio_derep/all_fa
 
-for file in $output/anvio_derep/all_fa/*; 
+for file in $output/anvio_derep/all_fa/*;
 do mv $output/anvio_derep/all_fa/$file $output/anvio_derep/all_fa/indA_$file ;
 done
 
 cp $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/all_fas/*.fa $output/anvio_derep/all_fa
 
-for file in $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/*; 
+for file in $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/*;
 do mv $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/$file $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/indB_$file ;
 done
 
