@@ -125,6 +125,7 @@ anvi-gen-contigs-database -f $ANVIO_A/IndA_contigs.fa -o $ANVIO_A/IndA_contigs.d
 anvi-gen-contigs-database -f $ANVIO_B/IndB_contigs.fa -o $ANVIO_B/IndB_contigs.db -n IndB --num-threads 25
 
 
+
 anvi-run-hmms -c $ANVIO_A/IndA_contigs.db -T 24
 anvi-run-hmms -c $ANVIO_B/IndB_contigs.db -T 24
 
@@ -292,7 +293,7 @@ samtools view -S -b $MAPPING/${sample}.sam > $MAPPING/${sample}.bam
 done
 
 
-conda activate anvio-7
+conda activate anvio7
 
 
 ## bam to anvio_bam profiling
