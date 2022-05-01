@@ -331,14 +331,14 @@ file_ext="_anvi.bam"
 for sample in `awk '{print $1}' $ANVIO_A/profile/sample_name`;
 do
 echo "$sample$file_ext"
-anvi-profile -i $MAPPING/"$sample$file_ext" -c $ANVIO_A/IndA_contigs.db --output-dir $ANVIO_A/profile/$sample --sample-name $sample -T 100 --min-contig-length 2500
+anvi-profile -i $MAPPING/IndA/"$sample$file_ext" -c $ANVIO_A/IndA_contigs.db --output-dir $ANVIO_A/profile/$sample --sample-name $sample -T 24 --min-contig-length 2500
 done
 # manually delete the sample for indB in the in indA folder and vice versa.
 file_ext="_anvi.bam"
 for sample in `awk '{print $1}' $ANVIO_B/profile/sample_name`;
 do
 echo "$sample$file_ext"
-anvi-profile -i $MAPPING/"$sample$file_ext" -c $ANVIO_B/IndB_contigs.db --output-dir $ANVIO_B/profile/$sample --sample-name $sample -T 100 --min-contig-length 2500
+anvi-profile -i $MAPPING/IndB/"$sample$file_ext" -c $ANVIO_B/IndB_contigs.db --output-dir $ANVIO_B/profile/$sample --sample-name $sample -T 24 --min-contig-length 2500
 done
 
 
@@ -355,16 +355,16 @@ anvi-merge $ANVIO_B/profile/*/PROFILE.db -o $ANVIO_B/profile_merged -c $ANVIO_B/
 ####################################################################
 
 
-anvi-cluster-contigs -p $ANVIO_A/profile_merged/PROFILE.db -c $ANVIO_A/IndA_contigs.db -C indA_concoct --driver concoct -T 100 --just-do-it
-anvi-cluster-contigs -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_contigs.db -C indB_concoct --driver concoct -T 100 --just-do-it
+anvi-cluster-contigs -p $ANVIO_A/profile_merged/PROFILE.db -c $ANVIO_A/IndA_contigs.db -C indA_concoct --driver concoct -T 24 --just-do-it
+anvi-cluster-contigs -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_contigs.db -C indB_concoct --driver concoct -T 24 --just-do-it
 
 ####################################################################
 ### metabat2
 ####################################################################
 
 
-anvi-cluster-contigs -p $ANVIO_A/profile_merged/PROFILE.db -c $ANVIO_A/IndA_contigs.db -C indA_metabat2 --driver metabat2 -T 100 --just-do-it
-anvi-cluster-contigs -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_contigs.db -C indB_metabat2 --driver metabat2 -T 100 --just-do-it
+anvi-cluster-contigs -p $ANVIO_A/profile_merged/PROFILE.db -c $ANVIO_A/IndA_contigs.db -C indA_metabat2 --driver metabat2 -T 24 --just-do-it
+anvi-cluster-contigs -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_contigs.db -C indB_metabat2 --driver metabat2 -T 24 --just-do-it
 
 
 ####################################################################
@@ -372,15 +372,15 @@ anvi-cluster-contigs -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_cont
 ####################################################################
 
 
-anvi-cluster-contigs -p $ANVIO_A/profile_merged/PROFILE.db -c $ANVIO_A/IndA_contigs.db -C indA_metabat2 --driver maxbin2 -T 100 --just-do-it
-anvi-cluster-contigs -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_contigs.db -C indB_metabat2 --driver maxbin2 -T 100 --just-do-it
+anvi-cluster-contigs -p $ANVIO_A/profile_merged/PROFILE.db -c $ANVIO_A/IndA_contigs.db -C indA_maxbin2 --driver maxbin2 -T 24 --just-do-it
+anvi-cluster-contigs -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_contigs.db -C indB_maxbin2 --driver maxbin2 -T 24 --just-do-it
 
 ####################################################################
 ### dastool
 ####################################################################
 
-anvi-cluster-contigs -p $ANVIO_A/profile_merged/PROFILE.db -c $ANVIO_A/IndA_contigs.db -S indA_concoct,indA_metabat2 --search-engine usearch --driver dastool -C indA_dastool -T 100 --just-do-it
-anvi-cluster-contigs -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_contigs.db -S indB_concoct,indB_metabat2 --search-engine usearch --driver dastool -C indB_dastool -T 100 --just-do-it
+anvi-cluster-contigs -p $ANVIO_A/profile_merged/PROFILE.db -c $ANVIO_A/IndA_contigs.db -S indA_concoct,indA_metabat2 --search-engine diamond --driver dastool -C indA_dastool -T 24 --just-do-it
+anvi-cluster-contigs -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_contigs.db -S indB_concoct,indB_metabat2 --search-engine diamond --driver dastool -C indB_dastool -T 24 --just-do-it
 
 ####################################################################
 ### SUMMARIZE!
