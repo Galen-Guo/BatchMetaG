@@ -368,14 +368,6 @@ anvi-cluster-contigs -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_cont
 
 
 ####################################################################
-### maxbin2
-####################################################################
-
-
-anvi-cluster-contigs -p $ANVIO_A/profile_merged/PROFILE.db -c $ANVIO_A/IndA_contigs.db -C indA_maxbin2 --driver maxbin2 -T 24 --just-do-it
-anvi-cluster-contigs -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_contigs.db -C indB_maxbin2 --driver maxbin2 -T 24 --just-do-it
-
-####################################################################
 ### dastool
 ####################################################################
 
@@ -388,6 +380,16 @@ anvi-cluster-contigs -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_cont
 
 anvi-summarize -p $ANVIO_A/profile_merged/PROFILE.db -c $ANVIO_A/IndA_contigs.db -o $ANVIO_A/sample_summary_indA_dastool -C indA_dastool --init-gene-coverages
 anvi-summarize -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_contigs.db -o $ANVIO_B/sample_summary_indB_dastool -C indB_dastool --init-gene-coverages
+
+ ####################################################################
+ ### checkm to know which
+ ####################################################################2
+
+ conda activate anvio7
+ checkm lineage_wf $ANVIO_A/sample_summary_indA_dastool/bin_by_bin/all_fas $ANVIO_A/sample_summary_indA_dastool/checkm -x fa -t 24
+ checkm lineage_wf $ANVIO_B/sample_summary_indB_dastool/bin_by_bin/all_fas $ANVIO_B/sample_summary_indB_dastool/checkm -x fa -t 24
+
+
 
 ####################################################################
 ### Transfer contig.db and profile.db (and auxiliary) file to local machine to manually refine!
@@ -404,51 +406,20 @@ anvi-refine ....
 cd $ANVIO_A/
 
 anvi-export-collection -C indA_dastool -p $ANVIO_A/profile_merged/PROFILE.db
-anvi-import-collection $ANVIO_A/collection-indA_dastool.txt --bins-info $ANVIO_A/collection-indA_dastool-info.txt -C FINAL -p $ANVIO_A/profile_merged/PROFILE.db  -c $ANVIO_A/IndA_contigs.db
+anvi-import-collection $ANVIO_A/collection-indA_FINAL.txt --bins-info $ANVIO_A/collection-indA_FINAL-info.txt -C FINAL -p $ANVIO_A/profile_merged/PROFILE.db  -c $ANVIO_A/IndA_contigs.db
 
+anvi-import-collection collection-indA_FINAL.txt --bins-info collection-indA_FINAL-info.txt -C FINAL -p profile_merged/PROFILE.db  -c IndA_contigs.db
 
 cd $ANVIO_B/
 
 anvi-export-collection -C indB_dastool -p $ANVIO_B/profile_merged/PROFILE.db
 anvi-import-collection $ANVIO_B/collection-indB_dastool.txt --bins-info $ANVIO_B/collection-indB_dastool-info.txt -C FINAL -p $ANVIO_B/profile_merged/PROFILE.db  -c $ANVIO_A/IndA_contigs.db
 
-
-
-####################################################################
-### add estimate metabolism (KEGG)
-####################################################################
-# estimate metabolism (KEGG) of collection, must run anvi-setup-kegg-kofams first
-anvi-run-kegg-kofams -p $ANVIO_A/profile_merged/PROFILE.db  -c $ANVIO_A/IndA_contigs.db   -C FINAL -T 75 --kegg-data-dir $GALEN/KOFAM/
-anvi-run-kegg-kofams -p $ANVIO_B/profile_merged/PROFILE.db  -c $ANVIO_B/IndB_contigs.db   -C FINAL -T 75 --kegg-data-dir $GALEN/KOFAM/
-
-cd $ANVIO_A
-anvi-estimate-metabolism -p $ANVIO_A/profile_merged/PROFILE.db -c $ANVIO_A/IndA_contigs.db -C FINAL --kegg-data-dir $GALEN/KOFAM/ --output-file-prefix $ANVIO_A/IndA_KEGG_FINAL --add-coverage
-cd $ANVIO_B
-anvi-estimate-metabolism -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_contigs.db -C FINAL --kegg-data-dir $GALEN/KOFAM/ --output-file-prefix $ANVIO_B/IndB_KEGG_FINAL --add-coverage
-
-
-####################################################################
-### estimate taxonomy of bins (using GTDB)
-####################################################################
-
-anvi-run-scg-taxonomy -c $ANVIO_A/IndA_contigs.db -T 100 --all-hits-output-file $ANVIO_A/SCG_out -P 5
-anvi-run-scg-taxonomy -c $ANVIO_B/IndB_contigs.db -T 100 --all-hits-output-file $ANVIO_B/SCG_out -P 5
-
-cd $ANVIO_A/
-anvi-estimate-scg-taxonomy -p $ANVIO_A/profile_merged/PROFILE.db -c $ANVIO_A/IndA_contigs.db -C FINAL -T 100
-
-
-cd $ANVIO_B/
-anvi-estimate-scg-taxonomy -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_contigs.db -C FINAL -T 100
-
-
 ####################################################################
 ### summarize! again..
 ####################################################################
 anvi-summarize -p $ANVIO_A/profile_merged/PROFILE.db -c $ANVIO_A/IndA_contigs.db -o $ANVIO_A/sample_summary_indA_FINAL -C FINAL --init-gene-coverages
 anvi-summarize -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_contigs.db -o $ANVIO_B/sample_summary_indB_FINAL -C FINAL --init-gene-coverages
-
-
 
 ####################################################################
 ### checkm
@@ -459,41 +430,88 @@ cp $ANVIO_A/sample_summary_indA_FINAL/bin_by_bin/*/*.fa $ANVIO_A/sample_summary_
 mkdir $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/all_fas
 cp $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/*/*.fa $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/all_fas
 
-checkm lineage_wf $ANVIO_A/sample_summary_indA_FINAL/bin_by_bin/all_fas $ANVIO_A/sample_summary_indA_FINAL/checkm -x fa -t 100
-checkm lineage_wf $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/all_fas $ANVIO_B/sample_summary_indB_FINAL/checkm -x fa -t 100
+checkm lineage_wf $ANVIO_A/sample_summary_indA_FINAL/bin_by_bin/all_fas $ANVIO_A/sample_summary_indA_FINAL/checkm -x fa -t 24
+checkm lineage_wf $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/all_fas $ANVIO_B/sample_summary_indB_FINAL/checkm -x fa -t 24
 
 ####################################################################
-### DRAM
+### add estimate metabolism (KEGG)
+####################################################################
+# estimate metabolism (KEGG) of collection, must run anvi-setup-kegg-kofams first
+anvi-run-kegg-kofams -p $ANVIO_A/profile_merged/PROFILE.db  -c $ANVIO_A/IndA_contigs.db   -C FINAL -T 24 --kegg-data-dir $GALEN/KOFAM/
+anvi-run-kegg-kofams -p $ANVIO_B/profile_merged/PROFILE.db  -c $ANVIO_B/IndB_contigs.db   -C FINAL -T 24 --kegg-data-dir $GALEN/KOFAM/
+
+
+anvi-estimate-metabolism -p $ANVIO_A/profile_merged/PROFILE.db -c $ANVIO_A/IndA_contigs.db -C FINAL --kegg-data-dir $GALEN/KOFAM/ --output-file-prefix $ANVIO_A/IndA_KEGG_FINAL --add-coverage
+anvi-estimate-metabolism -p $ANVIO_B/profile_merged/PROFILE.db -c $ANVIO_B/IndB_contigs.db -C FINAL --kegg-data-dir $GALEN/KOFAM/ --output-file-prefix $ANVIO_B/IndB_KEGG_FINAL --add-coverage
+
+
+####################################################################
+### estimate taxonomy of bins (using GTDB)
 ####################################################################
 
 
-conda activate DRAM
+conda activate /isilon/ottawa-rdc/users/shared/chenw_lab/galen/gtdbtk
 
-cd $ANVIO_A/sample_summary_indA_FINAL/bin_by_bin/
-DRAM.py annotate --input_fasta 'all_fas/*.fa' -o $ANVIO_A/sample_summary_indA_FINAL/DRAM --threads 60
+GTDBTK_DATA_PATH="/isilon/common/reference/databases/gtdb/release202"
 
-### Distilling (summarizing all data into a very nice graph)
+gtdbtk de_novo_wf --genome_dir $ANVIO_A/sample_summary_FINAL/bin_by_bin/all_fas/ \
+--bacteria \
+--out_dir $ANVIO_A/sample_summary_FINAL/gtdbtk \
+--outgroup_taxon p__Chloroflexota \
+-x fa --cpu 24
 
-DRAM.py distill \
-	-i $ANVIO_A/sample_summary_indA_FINAL/DRAM/annotations.tsv \
-	-o $ANVIO_A/sample_summary_indA_FINAL/DRAM/genome_summaries \
-	--trna_path $ANVIO_A/sample_summary_indA_FINAL/DRAM/trnas.tsv \
-	--rrna_path $ANVIO_A/sample_summary_indA_FINAL/DRAM/rrnas.tsv
+gtdbtk ani_rep --genome_dir $ANVIO_A/sample_summary_FINAL/bin_by_bin/all_fas/ --output-dir $ANVIO_A/sample_summary_FINAL/gtdbtk -x fa --cpu 24
+gtdbtk classify_wf --genome_dir $ANVIO_A/sample_summary_FINAL/bin_by_bin/all_fas/ --out_dir $ANVIO_A/sample_summary_FINAL/gtdbtk -x fa --cpu 24
 
 
-cd $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/all_fas
-DRAM.py annotate \
-	-i '*.fa' \
-	-o $ANVIO_B/sample_summary_indB_FINAL/DRAM \
-	--threads 100
 
-### Distilling (summarizing all data into a very nice graph)
+conda activate /isilon/ottawa-rdc/users/shared/chenw_lab/galen/gtdbtk
 
-DRAM.py distill \
-	-i $ANVIO_B/sample_summary_indB_FINAL/DRAM/annotations.tsv \
-	-o $ANVIO_B/sample_summary_indB_FINAL/DRAM/genome_summaries \
-	--trna_path $ANVIO_B/sample_summary_indB_FINAL/DRAM/trnas.tsv \
-	--rrna_path $ANVIO_B/sample_summary_indB_FINAL/DRAM/rrnas.tsv
+GTDBTK_DATA_PATH="/isilon/common/reference/databases/gtdb/release202"
+
+gtdbtk de_novo_wf --genome_dir $ANVIO_B/sample_summary_FINAL/bin_by_bin/all_fas/ \
+--bacteria \
+--out_dir $ANVIO_B/sample_summary_FINAL/gtdbtk \
+--outgroup_taxon p__Chloroflexota \
+-x fa --cpu 24
+
+gtdbtk ani_rep --genome_dir $ANVIO_B/sample_summary_FINAL/bin_by_bin/all_fas/ --output-dir $ANVIO_B/sample_summary_FINAL/gtdbtk -x fa --cpu 24
+gtdbtk classify_wf --genome_dir $ANVIO_B/sample_summary_FINAL/bin_by_bin/all_fas/ --out_dir $ANVIO_B/sample_summary_FINAL/gtdbtk -x fa --cpu 24
+
+
+
+# ####################################################################
+# ### DRAM
+# ####################################################################
+#
+#
+# conda activate DRAM
+#
+# cd $ANVIO_A/sample_summary_indA_FINAL/bin_by_bin/
+# DRAM.py annotate --input_fasta 'all_fas/*.fa' -o $ANVIO_A/sample_summary_indA_FINAL/DRAM --threads 60
+#
+# ### Distilling (summarizing all data into a very nice graph)
+#
+# DRAM.py distill \
+# 	-i $ANVIO_A/sample_summary_indA_FINAL/DRAM/annotations.tsv \
+# 	-o $ANVIO_A/sample_summary_indA_FINAL/DRAM/genome_summaries \
+# 	--trna_path $ANVIO_A/sample_summary_indA_FINAL/DRAM/trnas.tsv \
+# 	--rrna_path $ANVIO_A/sample_summary_indA_FINAL/DRAM/rrnas.tsv
+#
+#
+# cd $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/all_fas
+# DRAM.py annotate \
+# 	-i '*.fa' \
+# 	-o $ANVIO_B/sample_summary_indB_FINAL/DRAM \
+# 	--threads 100
+#
+# ### Distilling (summarizing all data into a very nice graph)
+#
+# DRAM.py distill \
+# 	-i $ANVIO_B/sample_summary_indB_FINAL/DRAM/annotations.tsv \
+# 	-o $ANVIO_B/sample_summary_indB_FINAL/DRAM/genome_summaries \
+# 	--trna_path $ANVIO_B/sample_summary_indB_FINAL/DRAM/trnas.tsv \
+# 	--rrna_path $ANVIO_B/sample_summary_indB_FINAL/DRAM/rrnas.tsv
 
 ####################################################################
 ### prepare fasta file for dereplication (dereplication allows the comparison between different genome from different sample sets)
@@ -525,27 +543,8 @@ conda activate DRAM
 
 cd $output/anvio_derep/derep/dereplicated_genomes
 
-DRAM.py annotate -i '*.fa' -o $output/anvio_derep/derep/DRAM --threads 100
+DRAM.py annotate -i '*.fa' -o $output/anvio_derep/derep/DRAM --threads 24
 
 ### Distilling (summarizing all data into a very nice graph)
 
 DRAM.py distill -i $output/anvio_derep/derep/DRAM/annotations.tsv -o $output/anvio_derep/derep/DRAM/genome_summaries --trna_path $output/anvio_derep/derep/DRAM/trnas.tsv --rrna_path $ANVI$output/anvio_derep/derep/DRAM/rrnas.tsv
-
-
-
-
-
-####################################################################
-### gtdb-tk
-####################################################################
-conda activate gtdb-tk
-
-GTDBTK_DATA_PATH="/isilon/ottawa-rdc/users/shared/chenw_lab/galen/GTDB_release95/"
-
-gtdbtk de_novo_wf --genome_dir $ANVIO_A/sample_summary_indA_FINAL/bin_by_bin/all_fas/ --bacteria -x fa --outgroup_taxon p__Chloroflexi --out_dir $ANVIO_A/sample_summary_indA_FINAL/gtdb_output --cpus 20
-gtdbtk ani_rep --genome_dir $ANVIO_A/sample_summary_indA_FINAL/bin_by_bin/all_fas --out_dir $ANVIO_A/sample_summary_indA_FINAL/gtdb_output -x fa --cpus 20
-gtdbtk classify_wf --genome_dir $ANVIO_A/sample_summary_indA_FINAL/bin_by_bin/all_fas --out_dir $ANVIO_A/sample_summary_indA_FINAL/gtdb_output --outgroup_taxon p__Chloroflexi -x fa --cpus 20
-
-gtdbtk de_novo_wf --genome_dir $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/all_fas --bacteria -x fa --outgroup_taxon p__Chlamydiae --out_dir $ANVIO_B/sample_summary_indB_FINAL/gtdb_output --cpus 20
-gtdbtk ani_rep --genome_dir $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/all_fas --out_dir $ANVIO_B/sample_summary_indB_FINAL/gtdb_output -x fa --cpus 20
-gtdbtk classify_wf --genome_dir $ANVIO_B/sample_summary_indB_FINAL/bin_by_bin/all_fas --out_dir $ANVIO_B/sample_summary_indB_FINAL/gtdb_output --outgroup_taxon p__Chlamydiae -x fa --cpus 20
